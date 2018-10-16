@@ -47,20 +47,18 @@ class WaypointUpdater(object):
         rospy.logdebug("About to enter the base loop")
         self.loop()
 
-
     # TODO: Copied from the partial waypoint walkthrough video
 
     def loop(self):
         rate = rospy.Rate(50)
         while not rospy.is_shutdown():
-            # TODO: this is different from walktrhough, contains also check for waypoint_tree
+            # TODO: this is different from walkthrough, contains also check for waypoint_tree
             if self.pose and self.base_waypoints and self.waypoint_tree:
                 rospy.logdebug("Hooray! Waypoint data structures have been initialized")
                 # Get closest waypoint
                 closest_waypoint_idx = self.get_closest_waypoint_idx()
                 self.publish_waypoints(closest_waypoint_idx)
                 rate.sleep()
-
 
     def get_closest_waypoint_idx(self):
         x = self.pose.pose.position.x
@@ -83,7 +81,6 @@ class WaypointUpdater(object):
         lane.header = self.base_waypoints.header
         lane.waypoints = self.base_waypoints.waypoints[closest_idx:closest_idx + LOOKAHEAD_WPS]
         self.final_waypoints_pub.publish(lane)
-
 
     def pose_cb(self, msg):
         self.pose = msg
