@@ -46,6 +46,8 @@ class DBWNode(object):
         steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+        # TODO: yaw_controller seems to require this as kind of a fallback value, check!
+        min_speed = 0.1
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
@@ -55,7 +57,7 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # TODO: Create `Controller` object
-        self.controller = Controller()
+        self.controller = Controller(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle)
 
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber("/vehicle/dbw_enabled", Bool, self.dbw_enabled_cb)
@@ -75,15 +77,16 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
-            if not None in (self.current_vel, self.linear_vel, self.angular_vel):
-                controls = self.controller.control(self.current_vel,
+            if None not in (self.current_vel, self.linear_vel, self.angular_vel):
+
+                rospy.logdebug("About to call the controller")
+                throttle, brake, steering = self.controller.control(self.current_vel,
                                                                     self.dbw_enabled,
                                                                     self.linear_vel,
                                                                     self.angular_vel)
-
-                rospy.logdebug("About to publish new values")
+                rospy.logdebug("About to publish new values: throttle {}, brake {}, steering {}".format(throttle, brake, steering))
                 # if self.dbw_enabled:
-                self.publish(*controls)
+                self.publish(throttle, brake, steering)
                 rate.sleep()
 
     def dbw_enabled_cb(self, msg):
