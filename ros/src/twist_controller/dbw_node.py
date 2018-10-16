@@ -68,6 +68,7 @@ class DBWNode(object):
         self.linear_vel = None
         self.angular_vel = None
         self.throttle = self.brake = self.steering = 0
+        self.loop()
 
     def loop(self):
         rate = rospy.Rate(50)  # 50Hz
@@ -82,7 +83,7 @@ class DBWNode(object):
 
             rospy.logdebug("About to publish new values")
             # if self.dbw_enabled:
-            self.publish(0.4, 0, 0)
+            self.publish(1.0, 0, 0)
             rate.sleep()
 
     def dbw_enabled_cb(self, msg):
