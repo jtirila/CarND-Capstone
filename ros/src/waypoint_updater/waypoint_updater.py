@@ -3,7 +3,8 @@
 import rospy
 import numpy as np
 from geometry_msgs.msg import PoseStamped
-from styx_msgs.msg import Lane, Waypoint, Int32
+from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 from scipy.spatial import KDTree
 
 import math
@@ -45,7 +46,7 @@ class WaypointUpdater(object):
         self.base_waypoints = None
         self.waypoints_2d = None
         self.waypoint_tree = None
-        self.stopline_wp_idx = None
+        self.stopline_wp_idx = -1
 
         rospy.logdebug("About to enter the base loop")
         self.loop()
@@ -63,10 +64,12 @@ class WaypointUpdater(object):
                 rate.sleep()
 
     def get_closest_waypoint_idx(self):
+        rospy.loginfo("start_find_closest_waypoint")
         x = self.pose.pose.position.x
         y = self.pose.pose.position.y
         closest_idx = self.waypoint_tree.query([x, y], 1)[1]
         # Check if closest is ahead or behind vehicle
+        rospy.loginfo("Closest idx: {}".format(closest_idx))
         closest_coord = self.waypoints_2d[closest_idx]
         prev_coord = self.waypoints_2d[closest_idx - 1]
         cl_vect = np.array(closest_coord)
@@ -77,15 +80,17 @@ class WaypointUpdater(object):
             closest_idx = (closest_idx + 1) % len(self.waypoints_2d)
         return closest_idx
 
-    def publish_waypoints(self, closest_idx):
+    def publish_waypoints(self):
         final_lane = self.generate_lane()
         self.final_waypoints_pub.publish(final_lane)
 
     def generate_lane(self):
         lane = Lane()
+        rospy.loginfo("About to generate lane")
         closest_idx = self.get_closest_waypoint_idx()
+        rospy.loginfo("got_closest_waypoint")
         farthest_idx = closest_idx + LOOKAHEAD_WPS
-        base_waypoints = self.base_lane.waypoints[closest_idx:farthest_idx]
+        base_waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
 
         if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx):
             lane.waypoints = base_waypoints
@@ -112,9 +117,6 @@ class WaypointUpdater(object):
         return temp
 
 
-
-    def get_closest_waypoint_idx(self):
-        pass
 
     def pose_cb(self, msg):
         self.pose = msg
