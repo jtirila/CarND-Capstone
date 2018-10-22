@@ -2,12 +2,15 @@ from styx_msgs.msg import TrafficLight
 import numpy as np
 import tensorflow as tf
 import datetime
+import os
 
 
 class TLClassifier(object):
     def __init__(self):
 
-        graph_path = "model/frozen_inference_graph.pb"
+
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        graph_path = os.path.join(dir_path, "model", "frozen_inference_graph.pb")
 
         self.graph = tf.Graph()
         self.threshold = .5
@@ -22,8 +25,7 @@ class TLClassifier(object):
             self.boxes = self.graph.get_tensor_by_name('detection_boxes:0')
             self.scores = self.graph.get_tensor_by_name('detection_scores:0')
             self.classes = self.graph.get_tensor_by_name('detection_classes:0')
-            self.num_detections = self.graph.get_tensor_by_name(
-                'num_detections:0')
+            self.num_detections = self.graph.get_tensor_by_name('num_detections:0')
 
         self.sess = tf.Session(graph=self.graph)
 
@@ -64,4 +66,5 @@ class TLClassifier(object):
                 print('YELLOW')
                 return TrafficLight.YELLOW
 
+        print("NOTHING")
         return TrafficLight.UNKNOWN
