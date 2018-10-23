@@ -126,7 +126,7 @@ class TLDetector(object):
         closest_idx = self.waypoints_tree.query((pos_x, pos_y), 1)[1]
 
         # Check if closest is ahead or behind vehicle
-        rospy.loginfo("Closest idx: {}".format(closest_idx))
+        rospy.logdebug("Closest idx: {}".format(closest_idx))
         closest_coord = self.waypoints_2d[closest_idx]
         prev_coord = self.waypoints_2d[closest_idx - 1]
         cl_vect = np.array(closest_coord)
