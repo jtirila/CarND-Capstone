@@ -86,9 +86,9 @@ class WaypointUpdater(object):
 
     def generate_lane(self):
         lane = Lane()
-        rospy.loginfo("About to generate lane")
+        rospy.logdebug("About to generate lane")
         closest_idx = self.get_closest_waypoint_idx()
-        rospy.loginfo("got_closest_waypoint")
+        rospy.logdebug("got_closest_waypoint")
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
 

@@ -189,9 +189,7 @@ class TLDetector(object):
         light_idx = None
 
         if(self.pose):
-            rospy.logdebug("Yes we have pose")
             car_position = self.get_closest_waypoint((self.pose.pose.position.x, self.pose.pose.position.y))
-            rospy.logdebug("Yes we have car position")
             light_idx = self.get_closest_light_idx(self.waypoints_2d[car_position])
 
         rospy.logdebug("Car position idx: {}  -- closest light idx: {}".format(car_position, light_idx))
