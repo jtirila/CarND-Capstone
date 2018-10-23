@@ -10,13 +10,16 @@ from light_classification.tl_classifier import TLClassifier
 from scipy.spatial import KDTree
 import tf
 import cv2
+import numpy as np
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
 
 class TLDetector(object):
     def __init__(self):
-        rospy.init_node('tl_detector', log_level=rospy.DEBUG)
+        # Change this to rospy.DEBUG to see the debug messages in the code
+        rospy.init_node('tl_detector', log_level=rospy.INFO)
+
 
         self.pose = None
         self.waypoints = None
@@ -55,6 +58,8 @@ class TLDetector(object):
         self.last_wp = -1
         self.state_count = 0
 
+        rospy.logdebug("Finished initializing tldetector")
+
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -68,10 +73,10 @@ class TLDetector(object):
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
-        rospy.logdebug("lights: {}".format(self.lights))
+        # rospy.logdebug("lights: {}".format(self.lights))
         if not self.lights_2d:
             self.lights_2d = [[light_3d.pose.pose.position.x, light_3d.pose.pose.position.y] for light_3d in self.lights]
-            rospy.logdebug("Lights_2d: {}".format(self.lights_2d))
+            # rospy.logdebug("Lights_2d: {}".format(self.lights_2d))
             self.lights_tree = KDTree(self.lights_2d)
 
     def image_cb(self, msg):
@@ -82,6 +87,8 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
+
+        rospy.logdebug("About to process new image")
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
@@ -104,7 +111,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
+    def get_closest_waypoint(self, pose_2d):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
@@ -114,9 +121,43 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        return self.waypoints_tree.query((pose.x, pose.y), 1)[1]
+        pos_x = pose_2d[0]
+        pos_y = pose_2d[1]
+        closest_idx = self.waypoints_tree.query((pos_x, pos_y), 1)[1]
 
-    def get_light_state(self, light):
+        # Check if closest is ahead or behind vehicle
+        rospy.loginfo("Closest idx: {}".format(closest_idx))
+        closest_coord = self.waypoints_2d[closest_idx]
+        prev_coord = self.waypoints_2d[closest_idx - 1]
+        cl_vect = np.array(closest_coord)
+        prev_vect = np.array(prev_coord)
+        pos_vect = np.array([pos_x, pos_y])
+        val = np.dot(cl_vect - prev_vect, pos_vect - cl_vect)
+        if val > 0:
+            closest_idx = (closest_idx + 1) % len(self.waypoints_2d)
+        return closest_idx
+
+
+    def get_closest_light_idx(self, waypoint):
+        pos_x = waypoint[0]
+        pos_y = waypoint[1]
+
+        light_idx = self.lights_tree.query((pos_x, pos_y), 1)[1]
+        rospy.logdebug("Light_idx: {}".format(light_idx))
+
+        closest_light_coord = self.lights_2d[light_idx]
+        prev_light_coord = self.lights_2d[light_idx - 1]
+        cl_vect = np.array(closest_light_coord)
+        prev_vect = np.array(prev_light_coord)
+        pos_vect = np.array([pos_x, pos_y])
+        val = np.dot(cl_vect - prev_vect, pos_vect - cl_vect)
+        rospy.logdebug("About to determine whether light is in front, dot product val: {}".format(val))
+        if val > 0:
+            light_idx = (light_idx + 1) % len(self.lights_2d)
+        return light_idx
+
+
+    def get_light_state(self):
         """Determines the current color of the traffic light
 
         Args:
@@ -144,20 +185,23 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        light = None
+        rospy.logdebug("About to process traffic light")
+        light_idx = None
 
-        # List of positions that correspond to the line to stop in front of for a given intersection
-        stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+            rospy.logdebug("Yes we have pose")
+            car_position = self.get_closest_waypoint((self.pose.pose.position.x, self.pose.pose.position.y))
+            rospy.logdebug("Yes we have car position")
+            light_idx = self.get_closest_light_idx(self.waypoints_2d[car_position])
 
-        #TODO find the closest visible traffic light (if one exists)
+        rospy.logdebug("Car position idx: {}  -- closest light idx: {}".format(car_position, light_idx))
+        light_2d = self.lights_2d[light_idx]
+        waypt_idx = self.get_closest_waypoint(light_2d)
 
-        light_idx = self.lights_tree.query((self.pose.pose.x, self.pose.pose.y), 1)[1]
-
-        if light_idx:
-            state = self.get_light_state(light)
-            return light_idx, state
+        if waypt_idx is not None:
+            state = self.get_light_state()
+            rospy.logdebug("Light state: {}".format(state))
+            return waypt_idx, state
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
