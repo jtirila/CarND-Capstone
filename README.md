@@ -1,74 +1,57 @@
-This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+# CarND Capstone project
 
-Please use **one** of the two installation options, either native **or** docker installation.
+**By: Juha-Matti Tirilä**
 
-### Native Installation
+This is my implementation of the Capstone project of Udacity's CarND.
 
-* Be sure that your workstation is running Ubuntu 16.04 Xenial Xerus or Ubuntu 14.04 Trusty Tahir. [Ubuntu downloads can be found here](https://www.ubuntu.com/download/desktop).
-* If using a Virtual Machine to install Ubuntu, use the following configuration as minimum:
-  * 2 CPU
-  * 2 GB system memory
-  * 25 GB of free hard drive space
+The task was to implement various nodes on top of ROS to achieve the capability to navigate a vehicle around a
+test track.
 
-  The Udacity provided virtual machine has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this.
+Some of the most important parts of the software that were written during the project were:
 
-* Follow these instructions to install ROS
-  * [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) if you have Ubuntu 16.04.
-  * [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu) if you have Ubuntu 14.04.
-* [Dataspeed DBW](https://bitbucket.org/DataspeedInc/dbw_mkz_ros)
-  * Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
-* Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases).
+ * Some ROS subscribers and publishers related to waypoint, traffic light and image data processing
+ * Logic to control the steering, throttle and brake of the car so it follow the waypoints
+ * An image classifier and related infrastructure for detecting red lights
 
-### Docker Installation
-[Install Docker](https://docs.docker.com/engine/installation/)
+## Some Notes on My Implentation
 
-Build the docker container
-```bash
-docker build . -t capstone
-```
+### The "Team"
 
-Run the docker file
-```bash
-docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it capstone
-```
+Even though the suggestion is to complete the project as a team, I chose to work alone. I had to
+complete the work in a narrow timeframe so instead of relying on other people's schedules, I figured it
+is best for me to just do it myself.
 
-### Port Forwarding
-To set up port forwarding, please refer to the [instructions from term 2](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/16cf4a78-4fc7-49e1-8621-3450ca938b77)
+### The Generic ROS Code and Throttle, Steering Controllers
 
-### Usage
+These pieces of code I wrote independently, loosely following the suggestions made in the project
+walkthrough videos. I adjusted the code a bit here and there and used the provided Yaw and PID
+controllers. No attempt was made at making the solution any fancier than that.
 
-1. Clone the project repository
-```bash
-git clone https://github.com/udacity/CarND-Capstone.git
-```
+### The Image Classifier for Detecting Red Lights
 
-2. Install python dependencies
-```bash
-cd CarND-Capstone
-pip install -r requirements.txt
-```
-3. Make and run styx
-```bash
-cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
-```
-4. Run the simulator
+I set out for the image classification task with the following plan in mind:
 
-### Real world testing
-1. Download [training bag](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic_light_bag_file.zip) that was recorded on the Udacity self-driving car.
-2. Unzip the file
-```bash
-unzip traffic_light_bag_file.zip
-```
-3. Play the bag file
-```bash
-rosbag play -l traffic_light_bag_file/traffic_light_training.bag
-```
-4. Launch your project in site mode
-```bash
-cd CarND-Capstone/ros
-roslaunch launch/site.launch
-```
-5. Confirm that traffic light detection works on real life images
+1. Find some suitable labeled traffic light dataset for teaching
+1. Also find a nice convolutional image classifier from the TensorFlow model zoo and use it for
+   training and inference, instead of defining my own model layer by layer
+1. Save the output of the chosen model and use it for inference in the `tl_detection` ROS node.
+
+With this plan in mind, I came across [Alex Lechner's solution](https://github.com/alex-lechner/Traffic-Light-Classification).
+Alex had a nicely documented workflow for this exact task. I followed his approach pretty much as is, downloading
+the `SSD_inception_v2_coco` model and using it on an AWS instance to train the model. So even though
+I followed what Alex had done, I really did replicate all his steps and produced my own frozen inference graph.
+
+### The Image Classifier Inference Workflow
+
+As for the workflow of initializing the TensorFlow model from the frozen graph and the using if for
+image classification, I also used the solution Alex Lechner and his team as a reference but heavily
+modified the code and implemented parts of the solution independently. Specifically, for locating the closest
+traffic light, I made use of the KDTree solution used elsewhere in the project, instead of implementing the
+naive loop based optimization solution.
+
+## Conclusion
+
+Even though pressed with time, I really enjoyed the project and working with ROS. I find ROS a really nice
+solution for multi-component systems like these, involving message passing between loosely connected parts of
+a system. This mechanism of topic subscribers and publishers reminded me heavily of the Signals and Slots
+mechanism of the Qt framework.
