@@ -13,6 +13,8 @@ Some of the most important parts of the software that were written during the pr
  * Logic to control the steering, throttle and brake of the car so it follow the waypoints
  * An image classifier and related infrastructure for detecting red lights
 
+See the [original instruction README by Udacity](README_original.md) for further details on the project.
+
 ## Some Notes on My Implentation
 
 ### The "Team"
