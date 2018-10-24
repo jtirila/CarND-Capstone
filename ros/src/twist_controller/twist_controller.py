@@ -40,10 +40,10 @@ class Controller(object):
             return 3 * (0.0,)
 
         current_vel_fltrd = self.vel_lpf.filt(current_vel)
-        steering = self._yaw_controller.get_steering(linear_vel, angular_vel, current_vel)
+        steering = self._yaw_controller.get_steering(linear_vel, angular_vel, current_vel_fltrd)
 
-        vel_error = linear_vel - current_vel
-        self.last_vel = current_vel
+        vel_error = linear_vel - current_vel_fltrd
+        self.last_vel = current_vel_fltrd
         current_time = rospy.get_time()
         sample_time = current_time - self.last_time
         self.last_time = current_time
