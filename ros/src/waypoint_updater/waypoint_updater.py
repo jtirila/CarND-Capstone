@@ -30,7 +30,7 @@ LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this n
 
 class WaypointUpdater(object):
     def __init__(self):
-        rospy.init_node('waypoint_updater')
+        rospy.init_node('waypoint_updater', log_level=rospy.DEBUG)
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -86,17 +86,16 @@ class WaypointUpdater(object):
 
     def generate_lane(self):
         lane = Lane()
-        rospy.logdebug("About to generate lane")
         closest_idx = self.get_closest_waypoint_idx()
-        rospy.logdebug("got_closest_waypoint")
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
 
+        if self.stopline_wp_idx > 0:
+            rospy.logdebug("We have a red light ahead at{}".format(self.stopline_wp_idx))
         if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx):
             lane.waypoints = base_waypoints
         else:
             lane.waypoints = self.decelerate_waypoints(base_waypoints, closest_idx)
-
         return lane
 
     def decelerate_waypoints(self, waypoints, closest_idx):
