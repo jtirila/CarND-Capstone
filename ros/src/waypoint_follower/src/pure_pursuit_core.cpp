@@ -138,8 +138,8 @@ bool PurePursuit::interpolateNextTarget(int next_waypoint, geometry_msgs::Point 
   // ROS_INFO("c : %lf ", c);
   // ROS_INFO("distance : %lf ", d);
 
-  if (d > search_radius)
-    return false;
+  if (d > search_radius) {}
+    // return false;
 
   // unit vector of point 'start' to point 'end'
   tf::Vector3 v((end.x - start.x), (end.y - start.y), 0);
